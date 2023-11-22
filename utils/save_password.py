@@ -50,7 +50,7 @@ def check_config_file(file_path):
         return False
 
 """
-# 检测配置文件
+# Demo 检测配置文件
 config_file_path = 'config.ini'
 
 if check_config_file(config_file_path):

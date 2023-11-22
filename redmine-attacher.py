@@ -13,24 +13,27 @@ pip install argparse selenium
 
 import getpass
 import argparse
-import time
 
 from utils.save_password import *
 from utils.print_save import *
+from utils.browser_operate import *
 
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 
+# 传入参考
 description = "A simple script to upload files to a Redmine page."
 parser = argparse.ArgumentParser(description=description)
 parser.add_argument('-b', '--base', default='https://your.redmine.com',  # 可设置的redmine网址
                     help="Base URL for Redmine.")
-parser.add_argument('-u', '--url', default=None, type=str, required=True,
+parser.add_argument('-u', '--url', default=None, type=str,
+                    help="URL of Redmine page for upload.")
+parser.add_argument('-p', '--project', default=None, type=str,
                     help="URL of Redmine page for upload.")
 parser.add_argument('files', nargs=argparse.REMAINDER)
 opts = parser.parse_args()
 url = opts.url
 base = opts.base
+project = opts.project
 files = opts.files
 
 if not len(files):
@@ -58,52 +61,42 @@ while len(username) == 0:
 while len(password) == 0:
     password = getpass.getpass().encode('utf-8')
 
-login = base + '/login'
-
 # 启动浏览器
 browser = webdriver.Chrome()
-
+    
 # 登录到Redmine
-browser.get(login)
-username_input = browser.find_element(By.ID, "username")
-password_input = browser.find_element(By.ID, "password")
-username_input.send_keys(username.decode('utf-8'))
-password_input.send_keys(password.decode('utf-8'))
-password_input.submit()
-
-# 等待登录成功
-time.sleep(2)  # 根据实际情况调整等待时间
-
-# 确认登录是否成功
-if username.decode('utf-8') not in browser.page_source:
+if login_redmine(browser, base, username, password)==True:
+    print("登陆成功.")
+else:
     raise Exception("Login failed")
 
-# 上传文件——file
-def uploadFiles_file():
+def traverse_and_print(folder_info_list, depth=0):
+    for folder_info in folder_info_list:
+        print("  " * depth + str(folder_info))
+        traverse_and_print(folder_info.memberfolder, depth + 1)
+
+# 上传
+if project==None:
     for filename in files:
         print("Uploading %s..." % filename)
-        browser.get(url)
-        file_input = browser.find_element(By.CSS_SELECTOR, 'input[type="file"]')
-        file_path = os.path.abspath(filename)
-        file_input.send_keys(file_path)
-        time.sleep(2)  # 根据实际情况调整等待时间
-        browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
+        # uploadFiles_file()
+        uploadFiles_dmsf(browser, url, filename)
+else:
+    print("project:",project)
+    
+    #---------------------------------------------------------------------
+    rootFolderInfo=getFolderInfo(browser, base, project, rootFolderInfo=None) #, 27
+    # 打印结果
+    traverse_and_print(rootFolderInfo.memberfolder)
+    time.sleep(0.1)  # 根据实际加载时间调整等待时间
+    #---------------------------------------------------------------------
 
-# 上传文件——DMSF
-def uploadFiles_dmsf():
     for filename in files:
         print("Uploading %s..." % filename)
-        browser.get(url)
-        file_input = browser.find_element(By.CSS_SELECTOR, 'input[type="file"]')
-        file_path = os.path.abspath(filename)
-        file_input.send_keys(file_path)
-        time.sleep(2)  # 根据实际情况调整等待时间
-        browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
-        time.sleep(2)  # 根据实际情况调整等待时间
-
-        # 提交
-        browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
-        time.sleep(2)  # 根据实际情况调整等待时间
-
-# uploadFiles_file()
-uploadFiles_dmsf()
+        # uploadFiles_file()
+        if os.path.isfile(filename):
+            uploadFiles_dmsf(browser, base, project, filename, rootFolderInfo)
+        elif os.path.isdir(filename):
+            uploadFolder_dmsf(browser, base, project, filename, rootFolderInfo)
+        else:
+            print(f"[{filename}]无效")
