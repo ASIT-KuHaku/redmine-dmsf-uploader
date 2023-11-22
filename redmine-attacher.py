@@ -1,24 +1,25 @@
 #!/usr/bin/env python3
 
 """
-使用python脚本上传文件到redmine。
-Simple python script for attaching files to a redmine page.
+使用python脚本上传文件到redmine的文件库和DMSF（文档管家），支持明文保存用户名和密码（不安全）。
+Simple python script for attaching files to a Redmine page.
 
-pip install argparse mechanize
+Redmine version: 4.2.10.stable
 
-Depends on Mechanize: https://pypi.python.org/pypi/mechanize/
+pip install argparse selenium
 
-@authors: Alex Drlica-Wagner <kadrlica@fnal.gov> and kuhaku
+@authors: kuhaku, ChatGPT<chat.openai.com>, 文心一言<yiyan.baidu.com>, Alex Drlica-Wagner<kadrlica@fnal.gov>
 """
 
 import getpass
 import argparse
-
-import mechanize
-import mimetypes
+import time
 
 from utils.save_password import *
 from utils.print_save import *
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By
 
 description = "A simple script to upload files to a Redmine page."
 parser = argparse.ArgumentParser(description=description)
@@ -57,38 +58,52 @@ while len(username) == 0:
 while len(password) == 0:
     password = getpass.getpass().encode('utf-8')
 
-login = base+'/login'
+login = base + '/login'
 
-browser = mechanize.Browser()
-browser.set_handle_robots(False)
+# 启动浏览器
+browser = webdriver.Chrome()
 
-# Login to Redmine
-page = browser.open(login)  
-browser.select_form(predicate=lambda f: 'action' in f.attrs and f.attrs['action'].endswith('/login'))
-browser["username"] = username
-browser["password"] = password
+# 登录到Redmine
+browser.get(login)
+username_input = browser.find_element(By.ID, "username")
+password_input = browser.find_element(By.ID, "password")
+username_input.send_keys(username.decode('utf-8'))
+password_input.send_keys(password.decode('utf-8'))
+password_input.submit()
 
-try:
-    page = browser.submit()
-except:
+# 等待登录成功
+time.sleep(2)  # 根据实际情况调整等待时间
+
+# 确认登录是否成功
+if username.decode('utf-8') not in browser.page_source:
     raise Exception("Login failed")
 
-# Check if login was successful
-if username not in page.get_data():
-    raise Exception("Login failed")
-
-# Upload files——file
+# 上传文件——file
 def uploadFiles_file():
     for filename in files:
-        print("Uploading %s..."%filename)
-        # 打开页面
-        page = browser.open(url)
-        # 调试时
-        # savePage(page, 'output.html')
-        browser.select_form(predicate=lambda f: 'action' in f.attrs and f.attrs['action'].endswith('/files'))
-        filedata = open(filename,'rb')
-        filetype = mimetypes.guess_type(filename)[0]
-        browser.add_file(filedata, content_type=filetype, filename=filename)
-        page = browser.submit()
+        print("Uploading %s..." % filename)
+        browser.get(url)
+        file_input = browser.find_element(By.CSS_SELECTOR, 'input[type="file"]')
+        file_path = os.path.abspath(filename)
+        file_input.send_keys(file_path)
+        time.sleep(2)  # 根据实际情况调整等待时间
+        browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
 
-uploadFiles_file()
+# 上传文件——DMSF
+def uploadFiles_dmsf():
+    for filename in files:
+        print("Uploading %s..." % filename)
+        browser.get(url)
+        file_input = browser.find_element(By.CSS_SELECTOR, 'input[type="file"]')
+        file_path = os.path.abspath(filename)
+        file_input.send_keys(file_path)
+        time.sleep(2)  # 根据实际情况调整等待时间
+        browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
+        time.sleep(2)  # 根据实际情况调整等待时间
+
+        # 提交
+        browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
+        time.sleep(2)  # 根据实际情况调整等待时间
+
+# uploadFiles_file()
+uploadFiles_dmsf()

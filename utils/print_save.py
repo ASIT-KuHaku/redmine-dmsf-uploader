@@ -3,7 +3,7 @@
 # 保存page
 def savePage(page, path):
     # 读取页面内容并解码为字符串
-    html_content = page.read().decode('utf-8')
+    html_content = page#.decode('utf-8')
     # 将内容写入HTML文件
     with open(path, 'w', encoding='utf-8') as html_file:
         html_file.write(html_content)
