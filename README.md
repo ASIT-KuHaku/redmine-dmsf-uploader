@@ -1,7 +1,7 @@
 redmine-attacher
 ================
 
-使用python脚本上传文件到redmine。
+使用python脚本上传文件到redmine的文件库，支持明文保存用户名和密码（不安全）。
 Simple python script for attaching files to a Redmine page.
 
 Redmine version: 4.2.10.stable
