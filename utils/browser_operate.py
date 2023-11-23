@@ -2,8 +2,8 @@
 
 import os
 import time
-import copy
 import re
+import fnmatch
 
 from datetime import datetime
 from urllib.parse import urlparse, parse_qs
@@ -269,6 +269,8 @@ def getPathInfo(browser, base, project, rootFolderInfo=None):
 
 # 遍历rootFolderInfo找到对应文件，返回其FileInfo
 def findFileByName(rootFolderInfo, filename):
+    if rootFolderInfo==None:
+        raise Exception("FolderInfo is None.")
     # 文件检测
     if rootFolderInfo.type=='file':
         raise Exception("文件不支持遍历。")
@@ -300,13 +302,10 @@ def mkfolder_dmsf(browser, base, project, inputFolder, rootFolderInfo=None, slee
     #---------------------------------------------------------------------
     # print("uploadUrl:",uploadUrl)
     #---------------------------------------------------------------------
-
-    folder_path = os.path.abspath(inputFolder)
     foldername=extract_folder_name(inputFolder)
     
     browser.get(uploadUrl)
     #---------------------------------------------------------------------
-    # print(f"foldername:{foldername}({folder_path})")
     # print("folder_path:",folder_path)
     #---------------------------------------------------------------------
     dmsf_folder_title = browser.find_element(By.ID, "dmsf_folder_title")
@@ -401,9 +400,34 @@ def uploadFolder_dmsf(browser, base, project, folder_path, rootFolderInfo, sleep
     # 筛选出子文件夹
     subfolders = [f for f in all_items if os.path.isdir(os.path.join(folder_path, f))]
 
-    for filename in subfiles:
-        file_path = os.path.abspath(os.path.join(folder_path, filename))
+    # 读取gitignore
+    with open('.gitignore', 'r', encoding='utf-8') as f:
+        inputGitignoreInfo = f.readlines()
+    # 去除每行的换行符
+    inputGitignoreInfo = [line.strip() for line in inputGitignoreInfo]
+    inputGitignoreInfo.append('redmine-dmsf-uploader-config.ini')
+    inputGitignoreInfo.append('.gitignore')
 
+    # 使用glob模块匹配文件
+    gitignoreInfo=[]
+
+    for ignoreInfo in inputGitignoreInfo:
+        gitignoreInfo.append(ignoreInfo)
+        for root, dirs, files in os.walk('.'):  
+            # 匹配文件  
+            for file in fnmatch.filter(files, ignoreInfo):  
+                gitignoreInfo.append(file)
+            # 匹配文件夹  
+            for folder in fnmatch.filter(dirs, ignoreInfo):  
+                gitignoreInfo.append(folder)
+            
+    for filename in subfiles:
+        # 判断是否需要忽略文件
+        if filename in gitignoreInfo:
+            continue
+
+        file_path = os.path.abspath(os.path.join(folder_path, filename))
+        
         # 判断是否需要更新
         if updateByTime==True:
             # 获取本地文件的修改日期
@@ -440,8 +464,29 @@ def uploadFolder_dmsf(browser, base, project, folder_path, rootFolderInfo, sleep
         #---------------------------------------------------------------------
         print("update file_path:",file_path)
         #---------------------------------------------------------------------
+
+        # 传输文件
         file_input.send_keys(file_path)
+
+        # 计算等待时间
+        filesize=os.path.getsize(file_path)
+        netspeed=1 #MB/s
+        waittime=filesize/1024/1024/netspeed
+        waittime=waittime*2
+        if waittime<10:
+            waittime=waittime+10 # 根据运行环境调整
+
+        # 等待完成上传
+        try:
+            # 等待直到document.readyState为complete
+            WebDriverWait(browser, waittime).until(
+                EC.presence_of_element_located((By.NAME, 'dmsf_attachments[1][token]'))  # 选择一个页面上已经存在的元素
+            )
+        except TimeoutException:
+            raise Exception("Timed out waiting for page to load")
         time.sleep(sleeptime)
+
+        # 点击上传
         browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
         time.sleep(sleeptime)
 
@@ -450,6 +495,10 @@ def uploadFolder_dmsf(browser, base, project, folder_path, rootFolderInfo, sleep
         time.sleep(sleeptime)
 
     for foldername in subfolders:
+        # 判断是否需要忽略文件
+        if foldername in gitignoreInfo:
+            continue
+        
         file_path = os.path.abspath(os.path.join(folder_path, foldername))
         #---------------------------------------------------------------------
         # print("folder_path:",file_path)

@@ -5,7 +5,7 @@ import getpass
 import configparser
 
 # 保存用户名密码到文件
-def save_credentials(username, password, config_file='config.ini'):
+def save_credentials(username, password, config_file='redmine-dmsf-uploader-config.ini'):
     # 创建一个配置解析器对象
     config = configparser.ConfigParser()
 

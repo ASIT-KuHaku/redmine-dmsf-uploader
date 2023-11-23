@@ -6,6 +6,7 @@ redmine-dmsf-uploader(redmine-attacher)
 2. 支持按目录结构上传到指定项目的DMSF（暂时需先在DMSF创建对应文件夹）
 3. 支持上传文件夹，对比本地和服务器文件日期，选择性的上传更新的文件
 4. 支持读取dmsf网页目录结构，获取文件名、ID、修改日期
+5. 支持.gitignore文件，匹配忽略文件
 
 Simple python script for attaching files to a Redmine page, and uploading file to dmsf.
 

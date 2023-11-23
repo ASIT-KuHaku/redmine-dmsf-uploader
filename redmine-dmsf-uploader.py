@@ -7,6 +7,7 @@
 2. 支持按目录结构上传到指定项目的DMSF（暂时需先在DMSF创建对应文件夹）
 3. 支持上传文件夹，对比本地和服务器文件日期，选择性的上传更新的文件
 4. 支持读取dmsf网页目录结构，获取文件名、ID、修改日期
+5. 支持.gitignore文件，匹配忽略文件
 
 Simple python script for attaching files to a Redmine page.
 
@@ -50,14 +51,14 @@ username = b''
 password = b''
 
 # 检测配置文件
-config_file_path = 'config.ini'
+config_file_path = 'redmine-dmsf-uploader-config.ini'
 
 if check_config_file(config_file_path):
     # 执行其他操作，使用配置文件中的内容
     print("Config file and content are valid.")
 
     # 读取用户名和密码
-    username, password = read_credentials()
+    username, password = read_credentials(config_file_path)
     # 打印读取到的用户名和密码
     print(f"Username: {username.decode('utf-8', errors='ignore')}")
     print(f"Password: {'*' * len(password.decode('utf-8', errors='ignore'))}")
@@ -103,7 +104,7 @@ else:
     rootFolderInfo=getPathInfo(browser, base, project, rootFolderInfo=None)
     #---------------------------------------------------------------------
     # 打印结果
-    # traverse_and_print(rootFolderInfo.memberfile)
+    traverse_and_print(rootFolderInfo.memberfile)
     time.sleep(0.1)  # 根据实际加载时间调整等待时间
     #---------------------------------------------------------------------
     for filename in files:
