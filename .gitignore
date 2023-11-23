@@ -34,3 +34,5 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+
+redmine-dmsf-uploader-config.ini
