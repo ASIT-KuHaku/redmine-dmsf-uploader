@@ -12,7 +12,7 @@ Simple python script for attaching files to a Redmine page, and uploading file t
 
 Redmine version: 4.2.10.stable
 
-pip install argparse selenium
+pip install -r requirements.txt
 
 Examples:
 ---------

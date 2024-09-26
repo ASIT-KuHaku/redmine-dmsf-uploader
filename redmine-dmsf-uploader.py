@@ -79,7 +79,7 @@ else:
     browser = webdriver.Chrome()
     
 # 登录到Redmine
-if login_redmine(browser, base, username, password, sleeptime=0.1)==True:
+if login_redmine(browser, base, username, password, sleeptime=0.5)==True:
     print("登陆成功.")
 else:
     raise Exception("Login failed")

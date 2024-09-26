@@ -36,10 +36,33 @@ class DmsfFileInfo:
 def login_redmine(browser, base, username, password, sleeptime=0.1):
     login = base + '/login'
     browser.get(login)
+
+    # 等待控件加载
+    time.sleep(sleeptime)
+    username_input=None
+    password_input=None
+    # 
+    try:
+        WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.ID, "username"))
+        )
+    except TimeoutException:
+        raise Exception("Timed out waiting for page to load")
+    # 
+    try:
+        WebDriverWait(browser, 10).until(
+            EC.presence_of_element_located((By.ID, "password"))
+        )
+    except TimeoutException:
+        raise Exception("Timed out waiting for page to load")
+    time.sleep(sleeptime)
+    # 
     username_input = browser.find_element(By.ID, "username")
     password_input = browser.find_element(By.ID, "password")
+
     username_input.send_keys(username.decode('utf-8'))
     password_input.send_keys(password.decode('utf-8'))
+
     password_input.submit()
 
     # 等待登录成功
@@ -434,6 +457,7 @@ def uploadFolder_dmsf(browser, base, project, folder_path, rootFolderInfo, sleep
             fileModifiedtime = os.path.getmtime(file_path)
             modified_time_str = time.ctime(fileModifiedtime)
             local_modified_date = datetime.strptime(modified_time_str, '%a %b %d %H:%M:%S %Y')
+            local_modified_date = local_modified_date.replace(second=0, microsecond=0) #不精确到秒，解决重复更新的问题
             #---------------------------------------------------------------------
             # print(f"本地文件[{filename}]修改时间：", modified_time_str)
             #---------------------------------------------------------------------
@@ -441,6 +465,9 @@ def uploadFolder_dmsf(browser, base, project, folder_path, rootFolderInfo, sleep
             web_file=findFileByName(rootFolderInfo, filename)
             if web_file==None:
                 # 文件不存在，直接上传
+                #---------------------------------------------------------------------
+                print(f"文件不存在，直接上传.")
+                #---------------------------------------------------------------------
                 pass
             else:
                 # 文件存在，比较两个日期
@@ -454,11 +481,26 @@ def uploadFolder_dmsf(browser, base, project, folder_path, rootFolderInfo, sleep
                     continue
                 elif web_date < local_modified_date:
                     # 本地文件的修改时间更新，上传
+                    #---------------------------------------------------------------------
+                    print(f"web_date < local_modified_date:{web_date}<{local_modified_date}")
+                    #---------------------------------------------------------------------
+                    
+                    #上传时: y确认、n不上传然后终止、s跳过
+                    user_input = input(f"正在更新{filename}, 请输入一个值(输入y确认、n不上传然后终止、s跳过):").lower()
+                    if user_input == "n":
+                        exit()
+                    elif user_input == "y":
+                        pass
+                    elif user_input == "s":
+                        continue
+                    else:
+                        exit()
+
                     pass
                 else:
                     # 两者日期相同，不上传
                     continue
-
+        
         browser.get(uploadUrl)
         file_input = browser.find_element(By.CSS_SELECTOR, 'input[type="file"]')
         #---------------------------------------------------------------------
