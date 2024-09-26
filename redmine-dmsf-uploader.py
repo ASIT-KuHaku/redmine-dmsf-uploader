@@ -76,7 +76,7 @@ if False:
     options.add_argument('--headless')
     browser = webdriver.Chrome(options=options)
 else:
-    browser = webdriver.Chrome()
+    browser = webdriver.Edge()
     
 # 登录到Redmine
 if login_redmine(browser, base, username, password, sleeptime=0.5)==True:
